@@ -12,6 +12,8 @@ Minimal Kriegspiel random-move bot.
 
 ## Setup
 
+Set `KRIEGSPIEL_BOT_OWNER_EMAIL` in `.env` before registering. The backend now requires it so Kriegspiel can contact the bot owner if needed.
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
