@@ -5,13 +5,17 @@ import random
 import time
 from pathlib import Path
 
+import sys
+
 import chess
 import requests
 
-STATE_PATH = Path('.bot-state.json')
+BASE_DIR = Path(__file__).resolve().parent
+STATE_PATH = BASE_DIR / '.bot-state.json'
+ENV_PATH = BASE_DIR / '.env'
 
 
-def load_env_file(path: str = '.env'):
+def load_env_file(path: str | Path = ENV_PATH):
     env_path = Path(path)
     if not env_path.exists():
         return
@@ -102,10 +106,13 @@ def maybe_play_game(game_id: str):
 
 def run_loop(poll_seconds: float):
     while True:
-        mine = get_json('/api/game/mine')
-        for game in mine.get('games', []):
-            if game.get('state') == 'active':
-                maybe_play_game(game['game_id'])
+        try:
+            mine = get_json('/api/game/mine')
+            for game in mine.get('games', []):
+                if game.get('state') == 'active':
+                    maybe_play_game(game['game_id'])
+        except requests.RequestException as exc:
+            print(f'poll failed: {exc}', file=sys.stderr, flush=True)
         time.sleep(poll_seconds)
 
 
