@@ -7,7 +7,6 @@ from pathlib import Path
 
 import sys
 
-import chess
 import requests
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -80,9 +79,8 @@ def post_json(path: str, payload: dict | None = None):
     return response.json()
 
 
-def choose_random_moves(fen: str) -> list[str]:
-    board = chess.Board(fen)
-    moves = [move.uci() for move in board.legal_moves]
+def choose_random_moves(allowed_moves: list[str]) -> list[str]:
+    moves = list(allowed_moves)
     random.shuffle(moves)
     return moves
 
@@ -93,7 +91,7 @@ def maybe_play_game(game_id: str):
         return False
     if 'move' not in state.get('possible_actions', []):
         return False
-    for uci in choose_random_moves(state['your_fen']):
+    for uci in choose_random_moves(state.get('allowed_moves', [])):
         result = post_json(f'/api/game/{game_id}/move', {'uci': uci})
         print(f"{game_id}: tried {uci} -> {result['announcement']}")
         if result.get('move_done'):
