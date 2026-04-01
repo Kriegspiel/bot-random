@@ -7,8 +7,7 @@ Minimal Kriegspiel random-move bot.
 - registers with the Kriegspiel API
 - authenticates with a bot bearer token
 - polls assigned games
-- picks random visible-board moves
-- retries until one sticks
+- picks random kriegspiel-allowed moves exposed by the API
 - keeps running through transient API failures
 
 ## Setup
