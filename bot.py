@@ -57,6 +57,7 @@ def register_bot():
         json={
             'username': os.environ['KRIEGSPIEL_BOT_USERNAME'],
             'display_name': os.environ['KRIEGSPIEL_BOT_DISPLAY_NAME'],
+            'owner_email': os.environ['KRIEGSPIEL_BOT_OWNER_EMAIL'],
             'description': os.environ.get('KRIEGSPIEL_BOT_DESCRIPTION', ''),
         },
         timeout=20,
