@@ -1,4 +1,4 @@
-# ks-random-bot
+# bot-random
 
 Minimal Kriegspiel random-move bot.
 
@@ -9,6 +9,7 @@ Minimal Kriegspiel random-move bot.
 - polls assigned games
 - picks random visible-board moves
 - retries until one sticks
+- keeps running through transient API failures
 
 ## Setup
 
@@ -20,3 +21,7 @@ cp .env.example .env
 python bot.py --register
 python bot.py
 ```
+
+## systemd
+
+A production host can run the bot as a service with `deploy/kriegspiel-random-bot.service`.
