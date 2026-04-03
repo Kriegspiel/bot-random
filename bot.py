@@ -2,9 +2,9 @@
 
 This bot deliberately keeps the policy simple: whenever it is the bot's turn,
 it fetches the current private game state, shuffles the legal UCI moves the API
-already exposed to that player, and submits them one by one until one sticks.
-If no common move completes a turn, it falls back to the "ask any captures?"
-question when the server says that action is available.
+already exposed to that player, and submits a single random move attempt for
+that poll cycle. If no common move is available, it falls back to the
+"ask any captures?" question when the server says that action is available.
 
 The file is intentionally well-commented because this repository doubles as
 example code for future bot authors.
@@ -283,21 +283,22 @@ def maybe_play_game(game_id: str) -> bool:
     state = get_json(f"/api/game/{game_id}/state")
     if state.get("state") != "active" or state.get("turn") != state.get("your_color"):
         return False
-    if "move" not in state.get("possible_actions", []):
-        return False
 
-    # Try common moves first. We optimistically walk the shuffled legal list;
-    # the API remains the source of truth and will reject anything stale.
-    for uci in choose_random_moves(state.get("allowed_moves", [])):
+    possible_actions = state.get("possible_actions", [])
+    if "move" in possible_actions:
+        moves = choose_random_moves(state.get("allowed_moves", []))
+        if not moves:
+            return False
+        uci = moves[0]
         result = post_json(f"/api/game/{game_id}/move", {"uci": uci})
         print(f"{game_id}: tried {uci} -> {result['announcement']}")
-        if result.get("move_done"):
-            return True
+        return bool(result.get("move_done"))
 
-    # If no move completed a turn, use the alternate question flow when offered.
-    if "ask_any" in state.get("possible_actions", []):
+    if "ask_any" in possible_actions:
         result = post_json(f"/api/game/{game_id}/ask-any")
         print(f"{game_id}: ask-any -> {result['announcement']}")
+        return True
+
     return False
 
 

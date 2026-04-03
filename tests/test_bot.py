@@ -9,6 +9,42 @@ import bot
 
 
 class BotTests(unittest.TestCase):
+    def test_maybe_play_game_attempts_only_one_random_move_per_poll(self) -> None:
+        state = {
+            "state": "active",
+            "turn": "white",
+            "your_color": "white",
+            "possible_actions": ["move", "ask_any"],
+            "allowed_moves": ["e2e4", "d2d4", "g1f3"],
+        }
+        posts: list[tuple[str, dict | None]] = []
+
+        def fake_post_json(path: str, payload: dict | None = None) -> dict:
+            posts.append((path, payload))
+            return {"announcement": "Illegal move", "move_done": False}
+
+        with patch.object(bot, "get_json", return_value=state):
+            with patch.object(bot, "choose_random_moves", return_value=["d2d4", "e2e4", "g1f3"]):
+                with patch.object(bot, "post_json", side_effect=fake_post_json):
+                    self.assertFalse(bot.maybe_play_game("game-1"))
+
+        self.assertEqual(posts, [("/api/game/game-1/move", {"uci": "d2d4"})])
+
+    def test_maybe_play_game_falls_back_to_ask_any_when_move_unavailable(self) -> None:
+        state = {
+            "state": "active",
+            "turn": "white",
+            "your_color": "white",
+            "possible_actions": ["ask_any"],
+            "allowed_moves": [],
+        }
+
+        with patch.object(bot, "get_json", return_value=state):
+            with patch.object(bot, "post_json", return_value={"announcement": "No pawn captures."}) as post_json:
+                self.assertTrue(bot.maybe_play_game("game-1"))
+
+        post_json.assert_called_once_with("/api/game/game-1/ask-any")
+
     def test_open_bot_lobby_candidates_only_include_other_bot_waiting_games(self) -> None:
         with patch.dict("os.environ", {"KRIEGSPIEL_BOT_USERNAME": "randobot"}):
             candidates = bot.open_bot_lobby_candidates(
