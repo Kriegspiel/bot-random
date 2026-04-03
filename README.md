@@ -7,6 +7,7 @@ Minimal Kriegspiel random-move bot.
 - registers with the Kriegspiel API
 - authenticates with a bot bearer token
 - polls assigned games
+- can keep one open human-joinable lobby game advertised
 - picks random kriegspiel-allowed moves exposed by the API
 - keeps running through transient API failures
 
@@ -22,6 +23,13 @@ cp .env.example .env
 python bot.py --register
 python bot.py
 ```
+
+By default the bot also keeps one open lobby game available for humans to join.
+That behavior is controlled with:
+
+- `KRIEGSPIEL_AUTO_CREATE_LOBBY_GAME=true|false`
+- `KRIEGSPIEL_AUTO_CREATE_RULE_VARIANT=berkeley|berkeley_any`
+- `KRIEGSPIEL_AUTO_CREATE_PLAY_AS=white|black|random`
 
 ## systemd
 

@@ -114,6 +114,43 @@ def post_json(path: str, payload: dict | None = None) -> dict:
     return response.json()
 
 
+def auto_create_enabled() -> bool:
+    raw = os.environ.get("KRIEGSPIEL_AUTO_CREATE_LOBBY_GAME", "true").strip().lower()
+    return raw not in {"0", "false", "no", "off"}
+
+
+def create_payload() -> dict[str, str]:
+    return {
+        "rule_variant": os.environ.get("KRIEGSPIEL_AUTO_CREATE_RULE_VARIANT", "berkeley_any").strip() or "berkeley_any",
+        "play_as": os.environ.get("KRIEGSPIEL_AUTO_CREATE_PLAY_AS", "random").strip() or "random",
+        "time_control": "rapid",
+        "opponent_type": "human",
+    }
+
+
+def active_games(games: list[dict]) -> list[dict]:
+    return [game for game in games if game.get("state") == "active"]
+
+
+def waiting_games(games: list[dict]) -> list[dict]:
+    return [game for game in games if game.get("state") == "waiting"]
+
+
+def should_create_lobby_game(games: list[dict]) -> bool:
+    if not auto_create_enabled():
+        return False
+    return not waiting_games(games)
+
+
+def maybe_create_lobby_game(games: list[dict]) -> bool:
+    if not should_create_lobby_game(games):
+        return False
+
+    created = post_json("/api/game/create", create_payload())
+    print(f"created lobby game {created['game_id']} ({created['game_code']})")
+    return True
+
+
 def choose_random_moves(allowed_moves: list[str]) -> list[str]:
     """Return the server-provided legal moves in random order.
 
@@ -156,9 +193,10 @@ def run_loop(poll_seconds: float) -> None:
     while True:
         try:
             mine = get_json("/api/game/mine")
-            for game in mine.get("games", []):
-                if game.get("state") == "active":
-                    maybe_play_game(game["game_id"])
+            games = mine.get("games", [])
+            maybe_create_lobby_game(games)
+            for game in active_games(games):
+                maybe_play_game(game["game_id"])
         except requests.RequestException as exc:
             print(f"poll failed: {exc}", file=sys.stderr, flush=True)
         time.sleep(poll_seconds)
