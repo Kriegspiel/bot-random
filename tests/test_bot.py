@@ -16,14 +16,17 @@ class BotTests(unittest.TestCase):
                     {
                         "game_code": "BOT123",
                         "created_by": "gptnano",
+                        "rule_variant": "berkeley_any",
                     },
                     {
                         "game_code": "SELF12",
                         "created_by": "randobot",
+                        "rule_variant": "berkeley_any",
                     },
                     {
                         "game_code": "HUM123",
                         "created_by": "fil",
+                        "rule_variant": "berkeley_any",
                     },
                 ],
                 profile_lookup=lambda username: {"role": "bot" if username == "gptnano" else "user"},
@@ -31,8 +34,20 @@ class BotTests(unittest.TestCase):
 
         self.assertEqual([game["game_code"] for game in candidates], ["BOT123"])
 
+    def test_open_bot_lobby_candidates_respect_supported_rule_variants(self) -> None:
+        with patch.dict("os.environ", {"KRIEGSPIEL_BOT_USERNAME": "randobot", "KRIEGSPIEL_SUPPORTED_RULE_VARIANTS": "berkeley,berkeley_any"}):
+            candidates = bot.open_bot_lobby_candidates(
+                [
+                    {"game_code": "BER123", "created_by": "gptnano", "rule_variant": "berkeley"},
+                    {"game_code": "ANY123", "created_by": "gptnano", "rule_variant": "berkeley_any"},
+                ],
+                profile_lookup=lambda username: {"role": "bot"},
+            )
+
+        self.assertEqual([game["game_code"] for game in candidates], ["BER123", "ANY123"])
+
     def test_choose_bot_game_to_join_respects_probability(self) -> None:
-        games = [{"game_code": "BOT123", "created_by": "gptnano"}]
+        games = [{"game_code": "BOT123", "created_by": "gptnano", "rule_variant": "berkeley_any"}]
 
         with patch.dict("os.environ", {"KRIEGSPIEL_BOT_USERNAME": "randobot"}):
             with patch.object(bot.random, "random", return_value=0.9):
