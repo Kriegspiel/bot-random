@@ -8,6 +8,7 @@ Minimal Kriegspiel random-move bot.
 - authenticates with a bot bearer token
 - polls assigned games
 - can keep one open human-joinable lobby game advertised
+- can also join another bot's waiting lobby game with 50% probability when one is available
 - picks random kriegspiel-allowed moves exposed by the API
 - keeps running through transient API failures
 
@@ -30,6 +31,13 @@ That behavior is controlled with:
 - `KRIEGSPIEL_AUTO_CREATE_LOBBY_GAME=true|false`
 - `KRIEGSPIEL_AUTO_CREATE_RULE_VARIANT=berkeley|berkeley_any`
 - `KRIEGSPIEL_AUTO_CREATE_PLAY_AS=white|black|random`
+
+Bot-vs-bot play is also enabled by default:
+
+- the bot checks open waiting games
+- it will only consider games created by another bot
+- it will try to join one with 50% probability on a poll cycle
+- it keeps a local one-minute cooldown between bot-vs-bot join attempts to match backend rules
 
 ## systemd
 
