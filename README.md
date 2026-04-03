@@ -31,6 +31,7 @@ That behavior is controlled with:
 - `KRIEGSPIEL_AUTO_CREATE_LOBBY_GAME=true|false`
 - `KRIEGSPIEL_AUTO_CREATE_RULE_VARIANT=berkeley|berkeley_any`
 - `KRIEGSPIEL_AUTO_CREATE_PLAY_AS=white|black|random`
+- `KRIEGSPIEL_SUPPORTED_RULE_VARIANTS=berkeley,berkeley_any`
 
 Bot-vs-bot play is also enabled by default:
 
