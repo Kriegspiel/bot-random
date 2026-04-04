@@ -9,7 +9,7 @@ import bot
 
 
 class BotTests(unittest.TestCase):
-    def test_maybe_play_game_attempts_only_one_random_move_per_poll(self) -> None:
+    def test_maybe_play_game_retries_moves_with_delay_until_one_succeeds(self) -> None:
         state = {
             "state": "active",
             "turn": "white",
@@ -18,17 +18,29 @@ class BotTests(unittest.TestCase):
             "allowed_moves": ["e2e4", "d2d4", "g1f3"],
         }
         posts: list[tuple[str, dict | None]] = []
+        results = [
+            {"announcement": "Illegal move", "move_done": False},
+            {"announcement": "Move complete", "move_done": True},
+        ]
 
         def fake_post_json(path: str, payload: dict | None = None) -> dict:
             posts.append((path, payload))
-            return {"announcement": "Illegal move", "move_done": False}
+            return results.pop(0)
 
         with patch.object(bot, "get_json", return_value=state):
             with patch.object(bot, "choose_random_moves", return_value=["d2d4", "e2e4", "g1f3"]):
                 with patch.object(bot, "post_json", side_effect=fake_post_json):
-                    self.assertFalse(bot.maybe_play_game("game-1"))
+                    with patch.object(bot.time, "sleep") as sleep_mock:
+                        self.assertTrue(bot.maybe_play_game("game-1"))
 
-        self.assertEqual(posts, [("/api/game/game-1/move", {"uci": "d2d4"})])
+        self.assertEqual(
+            posts,
+            [
+                ("/api/game/game-1/move", {"uci": "d2d4"}),
+                ("/api/game/game-1/move", {"uci": "e2e4"}),
+            ],
+        )
+        sleep_mock.assert_called_once_with(bot.FAILED_MOVE_RETRY_DELAY_SECONDS)
 
     def test_maybe_play_game_falls_back_to_ask_any_when_move_unavailable(self) -> None:
         state = {
@@ -41,7 +53,7 @@ class BotTests(unittest.TestCase):
 
         with patch.object(bot, "get_json", return_value=state):
             with patch.object(bot, "post_json", return_value={"announcement": "No pawn captures."}) as post_json:
-                self.assertTrue(bot.maybe_play_game("game-1"))
+                self.assertFalse(bot.maybe_play_game("game-1"))
 
         post_json.assert_called_once_with("/api/game/game-1/ask-any")
 
