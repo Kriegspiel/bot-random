@@ -2,9 +2,9 @@
 
 This bot deliberately keeps the policy simple: whenever it is the bot's turn,
 it fetches the current private game state, shuffles the legal UCI moves the API
-already exposed to that player, and submits a single random move attempt for
-that poll cycle. If no common move is available, it falls back to the
-"ask any captures?" question when the server says that action is available.
+already exposed to that player, and submits them one by one until one sticks.
+If no common move completes a turn, it falls back to the "ask any captures?"
+question when the server says that action is available.
 
 The file is intentionally well-commented because this repository doubles as
 example code for future bot authors.
@@ -26,6 +26,7 @@ ENV_PATH = BASE_DIR / ".env"
 DEFAULT_TIMEOUT_SECONDS = 20
 BOT_JOIN_COOLDOWN_SECONDS = 60
 BOT_GAME_PICK_PROBABILITY = 0.5
+FAILED_MOVE_RETRY_DELAY_SECONDS = 1
 
 
 def load_env_file(path: str | Path = ENV_PATH) -> None:
@@ -289,15 +290,18 @@ def maybe_play_game(game_id: str) -> bool:
         moves = choose_random_moves(state.get("allowed_moves", []))
         if not moves:
             return False
-        uci = moves[0]
-        result = post_json(f"/api/game/{game_id}/move", {"uci": uci})
-        print(f"{game_id}: tried {uci} -> {result['announcement']}")
-        return bool(result.get("move_done"))
+        for index, uci in enumerate(moves):
+            result = post_json(f"/api/game/{game_id}/move", {"uci": uci})
+            print(f"{game_id}: tried {uci} -> {result['announcement']}")
+            if result.get("move_done"):
+                return True
+            if index < len(moves) - 1:
+                time.sleep(FAILED_MOVE_RETRY_DELAY_SECONDS)
 
     if "ask_any" in possible_actions:
         result = post_json(f"/api/game/{game_id}/ask-any")
         print(f"{game_id}: ask-any -> {result['announcement']}")
-        return True
+        return bool(result.get("move_done"))
 
     return False
 
