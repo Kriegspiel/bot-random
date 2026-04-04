@@ -12,6 +12,7 @@ example code for future bot authors.
 
 import argparse
 import json
+import logging
 import os
 import random
 import sys
@@ -27,6 +28,10 @@ DEFAULT_TIMEOUT_SECONDS = 20
 BOT_JOIN_COOLDOWN_SECONDS = 60
 BOT_GAME_PICK_PROBABILITY = 0.5
 FAILED_MOVE_RETRY_DELAY_SECONDS = 1
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+
+logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO), format="%(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
 
 
 def load_env_file(path: str | Path = ENV_PATH) -> None:
@@ -106,7 +111,7 @@ def register_bot() -> None:
     response.raise_for_status()
     payload = response.json()
     save_token(payload["api_token"])
-    print(json.dumps(payload, indent=2))
+    logger.debug("%s", json.dumps(payload, indent=2))
 
 
 def get_json(path: str) -> dict:
@@ -243,7 +248,7 @@ def maybe_join_bot_lobby_game(*, rng: random.Random = random) -> bool:
 
     record_bot_join_attempt()
     joined = post_json(f"/api/game/join/{game_code.strip()}")
-    print(f"joined bot lobby game {joined['game_id']} ({joined['game_code']})")
+    logger.debug("joined bot lobby game %s (%s)", joined["game_id"], joined["game_code"])
     return True
 
 
@@ -262,7 +267,7 @@ def maybe_create_lobby_game(games: list[dict]) -> bool:
         return False
 
     created = post_json("/api/game/create", create_payload())
-    print(f"created lobby game {created['game_id']} ({created['game_code']})")
+    logger.debug("created lobby game %s (%s)", created["game_id"], created["game_code"])
     return True
 
 
@@ -292,7 +297,7 @@ def maybe_play_game(game_id: str) -> bool:
             return False
         for index, uci in enumerate(moves):
             result = post_json(f"/api/game/{game_id}/move", {"uci": uci})
-            print(f"{game_id}: tried {uci} -> {result['announcement']}")
+            logger.debug("%s: tried %s -> %s", game_id, uci, result["announcement"])
             if result.get("move_done"):
                 return True
             if index < len(moves) - 1:
@@ -300,7 +305,7 @@ def maybe_play_game(game_id: str) -> bool:
 
     if "ask_any" in possible_actions:
         result = post_json(f"/api/game/{game_id}/ask-any")
-        print(f"{game_id}: ask-any -> {result['announcement']}")
+        logger.debug("%s: ask-any -> %s", game_id, result["announcement"])
         return bool(result.get("move_done"))
 
     return False
@@ -318,7 +323,7 @@ def run_loop(poll_seconds: float) -> None:
             for game in active_games(games):
                 maybe_play_game(game["game_id"])
         except requests.RequestException as exc:
-            print(f"poll failed: {exc}", file=sys.stderr, flush=True)
+            logger.warning("poll failed: %s", exc)
         time.sleep(poll_seconds)
 
 
