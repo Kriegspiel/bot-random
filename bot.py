@@ -27,6 +27,7 @@ ENV_PATH = BASE_DIR / ".env"
 DEFAULT_TIMEOUT_SECONDS = 20
 BOT_JOIN_COOLDOWN_SECONDS = 60
 BOT_GAME_PICK_PROBABILITY = 0.5
+MAX_ACTIVE_GAMES = 5
 FAILED_MOVE_RETRY_DELAY_SECONDS = 1
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
 
@@ -173,6 +174,10 @@ def waiting_games(games: list[dict]) -> list[dict]:
     return [game for game in games if game.get("state") == "waiting"]
 
 
+def under_active_game_limit(games: list[dict]) -> bool:
+    return len(active_games(games)) < MAX_ACTIVE_GAMES
+
+
 def open_bot_lobby_candidates(open_games: list[dict], *, profile_lookup=None) -> list[dict]:
     profile_lookup = profile_lookup or get_public_user
     own_username = bot_username()
@@ -232,6 +237,9 @@ def choose_bot_game_to_join(open_games: list[dict], *, rng: random.Random = rand
 
 
 def maybe_join_bot_lobby_game(*, rng: random.Random = random) -> bool:
+    mine = get_json("/api/game/mine")
+    if not under_active_game_limit(mine.get("games", [])):
+        return False
     if not can_attempt_bot_join():
         return False
 
@@ -255,6 +263,8 @@ def maybe_join_bot_lobby_game(*, rng: random.Random = random) -> bool:
 
 def should_create_lobby_game(games: list[dict]) -> bool:
     if not auto_create_enabled():
+        return False
+    if not under_active_game_limit(games):
         return False
     return not waiting_games(games)
 
