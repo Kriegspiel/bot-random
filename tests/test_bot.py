@@ -9,6 +9,10 @@ import bot
 
 
 class BotTests(unittest.TestCase):
+    def test_under_active_game_limit_caps_parallel_games_at_five(self) -> None:
+        self.assertTrue(bot.under_active_game_limit([{"state": "active"}] * 4))
+        self.assertFalse(bot.under_active_game_limit([{"state": "active"}] * 5))
+
     def test_maybe_play_game_retries_moves_with_delay_until_one_succeeds(self) -> None:
         state = {
             "state": "active",
@@ -119,6 +123,20 @@ class BotTests(unittest.TestCase):
                 self.assertFalse(bot.can_attempt_bot_join(now=30.0))
                 self.assertTrue(bot.can_attempt_bot_join(now=61.0))
                 post_mock.assert_not_called()
+
+    def test_maybe_join_bot_lobby_game_respects_active_game_limit(self) -> None:
+        mine = {"games": [{"state": "active"}] * 5}
+
+        def fake_get_json(path: str) -> dict:
+            if path == "/api/game/mine":
+                return mine
+            raise AssertionError(path)
+
+        with patch.object(bot, "get_json", side_effect=fake_get_json):
+            with patch.object(bot, "post_json") as post_mock:
+                self.assertFalse(bot.maybe_join_bot_lobby_game())
+
+        post_mock.assert_not_called()
 
     def test_can_attempt_bot_join_uses_local_cooldown_state(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

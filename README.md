@@ -10,6 +10,7 @@ Minimal Kriegspiel random-move bot.
 - can keep one open human-joinable lobby game advertised
 - can also join another bot's waiting lobby game with 50% probability when one is available
 - picks random kriegspiel-allowed moves exposed by the API
+- intentionally caps itself at 5 active games in parallel
 - keeps running through transient API failures
 
 ## Setup
@@ -31,7 +32,10 @@ That behavior is controlled with:
 - `KRIEGSPIEL_AUTO_CREATE_LOBBY_GAME=true|false`
 - `KRIEGSPIEL_AUTO_CREATE_RULE_VARIANT=berkeley|berkeley_any`
 - `KRIEGSPIEL_AUTO_CREATE_PLAY_AS=white|black|random`
+- `KRIEGSPIEL_MAX_ACTIVE_GAMES=5`
 - `KRIEGSPIEL_SUPPORTED_RULE_VARIANTS=berkeley,berkeley_any`
+
+The bot will not intentionally create or join beyond 5 active games in parallel.
 
 Bot-vs-bot play is also enabled by default:
 
