@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = bot
+
+[report]
+omit =
+    tests/*
+exclude_also =
+    if __name__ == .__main__.:

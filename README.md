@@ -44,6 +44,15 @@ Bot-vs-bot play is also enabled by default:
 - it will try to join one with 50% probability on a poll cycle
 - it keeps a local one-minute cooldown between bot-vs-bot join attempts to match backend rules
 
+## Test
+
+```bash
+pip install -r requirements-dev.txt
+python -m unittest discover -s tests
+python -m coverage run -m unittest discover -s tests
+python -m coverage report -m
+```
+
 ## systemd
 
 A production host can run the bot as a service with `deploy/kriegspiel-random-bot.service`.
