@@ -1,4 +1,6 @@
 .venv/
 __pycache__/
+.coverage
+coverage.json
 .bot-state.json
 .env
