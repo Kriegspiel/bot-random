@@ -29,6 +29,9 @@ BOT_JOIN_COOLDOWN_SECONDS = 60
 BOT_GAME_PICK_PROBABILITY = 0.5
 MAX_ACTIVE_GAMES = 5
 FAILED_MOVE_RETRY_DELAY_SECONDS = 1
+SUPPORTED_RULE_VARIANTS = ("berkeley", "berkeley_any", "cincinnati", "wild16")
+DEFAULT_SUPPORTED_RULE_VARIANTS = list(SUPPORTED_RULE_VARIANTS)
+DEFAULT_AUTO_CREATE_RULE_VARIANT = "berkeley_any"
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
 
 logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO), format="%(levelname)s %(message)s")
@@ -149,7 +152,7 @@ def auto_create_enabled() -> bool:
 
 def create_payload() -> dict[str, str]:
     return {
-        "rule_variant": os.environ.get("KRIEGSPIEL_AUTO_CREATE_RULE_VARIANT", "berkeley_any").strip() or "berkeley_any",
+        "rule_variant": auto_create_rule_variant(),
         "play_as": os.environ.get("KRIEGSPIEL_AUTO_CREATE_PLAY_AS", "random").strip() or "random",
         "time_control": "rapid",
         "opponent_type": "human",
@@ -157,13 +160,25 @@ def create_payload() -> dict[str, str]:
 
 
 def supported_rule_variants() -> list[str]:
-    raw = os.environ.get("KRIEGSPIEL_SUPPORTED_RULE_VARIANTS", "berkeley,berkeley_any")
+    raw = os.environ.get("KRIEGSPIEL_SUPPORTED_RULE_VARIANTS", ",".join(DEFAULT_SUPPORTED_RULE_VARIANTS))
     variants: list[str] = []
     for item in raw.split(","):
         value = item.strip()
-        if value in {"berkeley", "berkeley_any"} and value not in variants:
+        if value in SUPPORTED_RULE_VARIANTS and value not in variants:
             variants.append(value)
-    return variants or ["berkeley", "berkeley_any"]
+    return variants or DEFAULT_SUPPORTED_RULE_VARIANTS.copy()
+
+
+def auto_create_rule_variant() -> str:
+    """Choose a valid lobby ruleset, keeping old deployments on Berkeley + Any."""
+
+    configured = os.environ.get("KRIEGSPIEL_AUTO_CREATE_RULE_VARIANT", DEFAULT_AUTO_CREATE_RULE_VARIANT).strip()
+    supported = supported_rule_variants()
+    if configured in supported:
+        return configured
+    if DEFAULT_AUTO_CREATE_RULE_VARIANT in supported:
+        return DEFAULT_AUTO_CREATE_RULE_VARIANT
+    return supported[0]
 
 
 def active_games(games: list[dict]) -> list[dict]:

@@ -30,10 +30,10 @@ By default the bot also keeps one open lobby game available for humans to join.
 That behavior is controlled with:
 
 - `KRIEGSPIEL_AUTO_CREATE_LOBBY_GAME=true|false`
-- `KRIEGSPIEL_AUTO_CREATE_RULE_VARIANT=berkeley|berkeley_any`
+- `KRIEGSPIEL_AUTO_CREATE_RULE_VARIANT=berkeley|berkeley_any|cincinnati|wild16`
 - `KRIEGSPIEL_AUTO_CREATE_PLAY_AS=white|black|random`
 - `KRIEGSPIEL_MAX_ACTIVE_GAMES=5`
-- `KRIEGSPIEL_SUPPORTED_RULE_VARIANTS=berkeley,berkeley_any`
+- `KRIEGSPIEL_SUPPORTED_RULE_VARIANTS=berkeley,berkeley_any,cincinnati,wild16`
 
 The bot will not intentionally create or join beyond 5 active games in parallel.
 

@@ -87,16 +87,84 @@ class BotTests(unittest.TestCase):
         self.assertEqual([game["game_code"] for game in candidates], ["BOT123"])
 
     def test_open_bot_lobby_candidates_respect_supported_rule_variants(self) -> None:
-        with patch.dict("os.environ", {"KRIEGSPIEL_BOT_USERNAME": "randobot", "KRIEGSPIEL_SUPPORTED_RULE_VARIANTS": "berkeley,berkeley_any"}):
+        with patch.dict(
+            "os.environ",
+            {"KRIEGSPIEL_BOT_USERNAME": "randobot", "KRIEGSPIEL_SUPPORTED_RULE_VARIANTS": "berkeley,cincinnati,wild16"},
+        ):
             candidates = bot.open_bot_lobby_candidates(
                 [
                     {"game_code": "BER123", "created_by": "gptnano", "rule_variant": "berkeley"},
                     {"game_code": "ANY123", "created_by": "gptnano", "rule_variant": "berkeley_any"},
+                    {"game_code": "CIN123", "created_by": "gptnano", "rule_variant": "cincinnati"},
+                    {"game_code": "WLD123", "created_by": "gptnano", "rule_variant": "wild16"},
                 ],
                 profile_lookup=lambda username: {"role": "bot"},
             )
 
-        self.assertEqual([game["game_code"] for game in candidates], ["BER123", "ANY123"])
+        self.assertEqual([game["game_code"] for game in candidates], ["BER123", "CIN123", "WLD123"])
+
+    def test_supported_rule_variants_default_to_all_supported_rulesets(self) -> None:
+        with patch.dict("os.environ", {}, clear=True):
+            self.assertEqual(bot.supported_rule_variants(), ["berkeley", "berkeley_any", "cincinnati", "wild16"])
+
+    def test_supported_rule_variants_dedupe_and_ignore_unknown_rulesets(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {"KRIEGSPIEL_SUPPORTED_RULE_VARIANTS": "wild16,standard,cincinnati,wild16,berkeley_any"},
+        ):
+            self.assertEqual(bot.supported_rule_variants(), ["wild16", "cincinnati", "berkeley_any"])
+
+    def test_create_payload_accepts_new_rule_variants(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {
+                "KRIEGSPIEL_SUPPORTED_RULE_VARIANTS": "berkeley,cincinnati,wild16",
+                "KRIEGSPIEL_AUTO_CREATE_RULE_VARIANT": "cincinnati",
+            },
+        ):
+            self.assertEqual(bot.create_payload()["rule_variant"], "cincinnati")
+
+    def test_create_payload_falls_back_to_supported_rule_variant(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {
+                "KRIEGSPIEL_SUPPORTED_RULE_VARIANTS": "wild16",
+                "KRIEGSPIEL_AUTO_CREATE_RULE_VARIANT": "standard",
+            },
+        ):
+            self.assertEqual(bot.create_payload()["rule_variant"], "wild16")
+
+    def test_register_bot_advertises_all_supported_rulesets_by_default(self) -> None:
+        posts: list[dict] = []
+
+        class FakeResponse:
+            def raise_for_status(self) -> None:
+                return None
+
+            def json(self) -> dict:
+                return {"api_token": "token-123"}
+
+        def fake_post(*args, **kwargs):
+            posts.append(kwargs)
+            return FakeResponse()
+
+        env = {
+            "KRIEGSPIEL_API_BASE": "https://api.example.test",
+            "KRIEGSPIEL_BOT_REGISTRATION_KEY": "registration-key",
+            "KRIEGSPIEL_BOT_USERNAME": "randobot",
+            "KRIEGSPIEL_BOT_DISPLAY_NAME": "Random Bot",
+            "KRIEGSPIEL_BOT_OWNER_EMAIL": "bots@example.test",
+        }
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.object(bot, "STATE_PATH", Path(temp_dir) / ".bot-state.json"):
+                with patch.dict("os.environ", env, clear=True):
+                    with patch.object(bot.requests, "post", side_effect=fake_post):
+                        bot.register_bot()
+
+        self.assertEqual(
+            posts[0]["json"]["supported_rule_variants"],
+            ["berkeley", "berkeley_any", "cincinnati", "wild16"],
+        )
 
     def test_choose_bot_game_to_join_returns_candidate(self) -> None:
         games = [{"game_code": "BOT123", "created_by": "gptnano", "rule_variant": "berkeley_any"}]
