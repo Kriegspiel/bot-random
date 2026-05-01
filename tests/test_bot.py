@@ -89,7 +89,7 @@ class BotTests(unittest.TestCase):
     def test_open_bot_lobby_candidates_respect_supported_rule_variants(self) -> None:
         with patch.dict(
             "os.environ",
-            {"KRIEGSPIEL_BOT_USERNAME": "randobot", "KRIEGSPIEL_SUPPORTED_RULE_VARIANTS": "berkeley,cincinnati,wild16"},
+            {"KRIEGSPIEL_BOT_USERNAME": "randobot", "KRIEGSPIEL_SUPPORTED_RULE_VARIANTS": "berkeley,cincinnati,wild16,crazykrieg"},
         ):
             candidates = bot.open_bot_lobby_candidates(
                 [
@@ -97,15 +97,19 @@ class BotTests(unittest.TestCase):
                     {"game_code": "ANY123", "created_by": "gptnano", "rule_variant": "berkeley_any"},
                     {"game_code": "CIN123", "created_by": "gptnano", "rule_variant": "cincinnati"},
                     {"game_code": "WLD123", "created_by": "gptnano", "rule_variant": "wild16"},
+                    {"game_code": "CRZ123", "created_by": "gptnano", "rule_variant": "crazykrieg"},
                 ],
                 profile_lookup=lambda username: {"role": "bot"},
             )
 
-        self.assertEqual([game["game_code"] for game in candidates], ["BER123", "CIN123", "WLD123"])
+        self.assertEqual([game["game_code"] for game in candidates], ["BER123", "CIN123", "WLD123", "CRZ123"])
 
     def test_supported_rule_variants_default_to_all_supported_rulesets(self) -> None:
         with patch.dict("os.environ", {}, clear=True):
-            self.assertEqual(bot.supported_rule_variants(), ["berkeley", "berkeley_any", "cincinnati", "wild16"])
+            self.assertEqual(
+                bot.supported_rule_variants(),
+                ["berkeley", "berkeley_any", "cincinnati", "wild16", "rand", "english", "crazykrieg"],
+            )
 
     def test_supported_rule_variants_dedupe_and_ignore_unknown_rulesets(self) -> None:
         with patch.dict(
@@ -118,11 +122,11 @@ class BotTests(unittest.TestCase):
         with patch.dict(
             "os.environ",
             {
-                "KRIEGSPIEL_SUPPORTED_RULE_VARIANTS": "berkeley,cincinnati,wild16",
-                "KRIEGSPIEL_AUTO_CREATE_RULE_VARIANT": "cincinnati",
+                "KRIEGSPIEL_SUPPORTED_RULE_VARIANTS": "berkeley,cincinnati,wild16,rand,english,crazykrieg",
+                "KRIEGSPIEL_AUTO_CREATE_RULE_VARIANT": "crazykrieg",
             },
         ):
-            self.assertEqual(bot.create_payload()["rule_variant"], "cincinnati")
+            self.assertEqual(bot.create_payload()["rule_variant"], "crazykrieg")
 
     def test_create_payload_falls_back_to_supported_rule_variant(self) -> None:
         with patch.dict(
@@ -163,7 +167,7 @@ class BotTests(unittest.TestCase):
 
         self.assertEqual(
             posts[0]["json"]["supported_rule_variants"],
-            ["berkeley", "berkeley_any", "cincinnati", "wild16"],
+            ["berkeley", "berkeley_any", "cincinnati", "wild16", "rand", "english", "crazykrieg"],
         )
 
     def test_choose_bot_game_to_join_returns_candidate(self) -> None:
