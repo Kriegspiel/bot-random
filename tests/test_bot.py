@@ -40,8 +40,8 @@ class BotTests(unittest.TestCase):
         self.assertEqual(
             posts,
             [
-                ("/api/game/game-1/move", {"uci": "d2d4"}),
-                ("/api/game/game-1/move", {"uci": "e2e4"}),
+                ("/game/game-1/move", {"uci": "d2d4"}),
+                ("/game/game-1/move", {"uci": "e2e4"}),
             ],
         )
         sleep_mock.assert_called_once_with(bot.FAILED_MOVE_RETRY_DELAY_SECONDS)
@@ -59,7 +59,7 @@ class BotTests(unittest.TestCase):
             with patch.object(bot, "post_json", return_value={"announcement": "No pawn captures."}) as post_json:
                 self.assertFalse(bot.maybe_play_game("game-1"))
 
-        post_json.assert_called_once_with("/api/game/game-1/ask-any")
+        post_json.assert_called_once_with("/game/game-1/ask-any")
 
     def test_open_bot_lobby_candidates_only_include_other_bot_waiting_games(self) -> None:
         with patch.dict("os.environ", {"KRIEGSPIEL_BOT_USERNAME": "randobot"}):
@@ -200,7 +200,7 @@ class BotTests(unittest.TestCase):
         mine = {"games": [{"state": "active"}] * 5}
 
         def fake_get_json(path: str) -> dict:
-            if path == "/api/game/mine":
+            if path == "/game/mine":
                 return mine
             raise AssertionError(path)
 
