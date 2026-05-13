@@ -200,7 +200,7 @@ class BotTests(unittest.TestCase):
         mine = {"games": [{"state": "active"}] * 5}
 
         def fake_get_json(path: str) -> dict:
-            if path == "/game/mine":
+            if path == "/game/mine/active":
                 return mine
             raise AssertionError(path)
 
