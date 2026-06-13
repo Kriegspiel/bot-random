@@ -154,7 +154,6 @@ class BotTests(unittest.TestCase):
 
         env = {
             "KRIEGSPIEL_API_BASE": "https://api.example.test",
-            "KRIEGSPIEL_BOT_REGISTRATION_KEY": "registration-key",
             "KRIEGSPIEL_BOT_USERNAME": "randobot",
             "KRIEGSPIEL_BOT_DISPLAY_NAME": "Random Bot",
             "KRIEGSPIEL_BOT_OWNER_EMAIL": "bots@example.test",
@@ -169,6 +168,7 @@ class BotTests(unittest.TestCase):
             posts[0]["json"]["supported_rule_variants"],
             ["berkeley", "berkeley_any", "cincinnati", "wild16", "rand", "english", "crazykrieg"],
         )
+        self.assertNotIn("headers", posts[0])
 
     def test_choose_bot_game_to_join_returns_candidate(self) -> None:
         games = [{"game_code": "BOT123", "created_by": "gptnano", "rule_variant": "berkeley_any"}]
