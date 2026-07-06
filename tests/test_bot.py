@@ -9,9 +9,9 @@ import bot
 
 
 class BotTests(unittest.TestCase):
-    def test_under_active_game_limit_caps_parallel_games_at_five(self) -> None:
-        self.assertTrue(bot.under_active_game_limit([{"state": "active"}] * 4))
-        self.assertFalse(bot.under_active_game_limit([{"state": "active"}] * 5))
+    def test_under_active_game_limit_caps_parallel_games_at_ten(self) -> None:
+        self.assertTrue(bot.under_active_game_limit([{"state": "active"}] * 9))
+        self.assertFalse(bot.under_active_game_limit([{"state": "active"}] * 10))
 
     def test_maybe_play_game_retries_moves_with_delay_until_one_succeeds(self) -> None:
         state = {
@@ -188,12 +188,12 @@ class BotTests(unittest.TestCase):
                         with patch.object(bot, "get_public_user", return_value={"role": "bot"}):
                             with patch.object(bot.random, "choice", side_effect=lambda items: items[0]):
                                 with patch.object(bot.random, "random", return_value=0.9):
-                                    with patch.object(bot.time, "time", return_value=100.0):
+                                    with patch.object(bot.time, "time", return_value=400.0):
                                         with patch.object(bot, "post_json") as post_mock:
                                             self.assertFalse(bot.maybe_join_bot_lobby_game(rng=bot.random))
 
-                self.assertFalse(bot.can_attempt_bot_join(now=130.0))
-                self.assertTrue(bot.can_attempt_bot_join(now=161.0))
+                self.assertFalse(bot.can_attempt_bot_join(now=699.0))
+                self.assertTrue(bot.can_attempt_bot_join(now=700.0))
                 post_mock.assert_not_called()
 
     def test_maybe_join_bot_lobby_game_records_sample_even_without_candidate(self) -> None:
@@ -209,12 +209,12 @@ class BotTests(unittest.TestCase):
 
             with patch.object(bot, "STATE_PATH", state_path):
                 with patch.object(bot, "get_json", side_effect=fake_get_json):
-                    with patch.object(bot.time, "time", return_value=100.0):
+                    with patch.object(bot.time, "time", return_value=400.0):
                         with patch.object(bot, "post_json") as post_mock:
                             self.assertFalse(bot.maybe_join_bot_lobby_game())
 
-                self.assertFalse(bot.can_attempt_bot_join(now=130.0))
-                self.assertTrue(bot.can_attempt_bot_join(now=161.0))
+                self.assertFalse(bot.can_attempt_bot_join(now=699.0))
+                self.assertTrue(bot.can_attempt_bot_join(now=700.0))
                 post_mock.assert_not_called()
 
     def test_maybe_join_bot_lobby_game_skips_open_sample_during_cooldown(self) -> None:
@@ -224,8 +224,6 @@ class BotTests(unittest.TestCase):
 
             def fake_get_json(path: str) -> dict:
                 calls.append(path)
-                if path == "/game/mine/active":
-                    return {"games": []}
                 raise AssertionError(path)
 
             with patch.object(bot, "STATE_PATH", state_path):
@@ -234,10 +232,10 @@ class BotTests(unittest.TestCase):
                     with patch.object(bot.time, "time", return_value=130.0):
                         self.assertFalse(bot.maybe_join_bot_lobby_game())
 
-            self.assertEqual(calls, ["/game/mine/active"])
+            self.assertEqual(calls, [])
 
     def test_maybe_join_bot_lobby_game_respects_active_game_limit(self) -> None:
-        mine = {"games": [{"state": "active"}] * 5}
+        mine = {"games": [{"state": "active"}] * 10}
 
         def fake_get_json(path: str) -> dict:
             if path == "/game/mine/active":
@@ -255,8 +253,8 @@ class BotTests(unittest.TestCase):
             state_path = Path(temp_dir) / ".bot-state.json"
             with patch.object(bot, "STATE_PATH", state_path):
                 bot.record_bot_join_attempt(now=100.0)
-                self.assertFalse(bot.can_attempt_bot_join(now=120.0))
-                self.assertTrue(bot.can_attempt_bot_join(now=161.0))
+                self.assertFalse(bot.can_attempt_bot_join(now=399.0))
+                self.assertTrue(bot.can_attempt_bot_join(now=400.0))
 
     def test_has_own_waiting_game_detects_existing_lobby(self) -> None:
         with patch.dict("os.environ", {"KRIEGSPIEL_BOT_USERNAME": "randobot"}):
