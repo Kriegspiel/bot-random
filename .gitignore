@@ -4,3 +4,7 @@ __pycache__/
 coverage.json
 .bot-state.json
 .env
+
+# Versioned Python runtime environments and rollback metadata.
+.venv*
+.python-runtime-rollback.json
